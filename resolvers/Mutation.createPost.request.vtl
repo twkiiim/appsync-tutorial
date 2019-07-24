@@ -1,0 +1,18 @@
+$util.qr($context.args.input.put("createdAt", $util.defaultIfNull($ctx.args.input.createdAt, $util.time.nowISO8601())))
+
+{
+    "version": "2017-02-28",
+    "operation": "PutItem",
+    "key": {
+        "postId":   $util.dynamodb.toDynamoDBJson($util.defaultIfNullOrBlank($ctx.args.input.postId, $util.autoId()))
+    },
+    "attributeValues": $util.dynamodb.toMapValuesJson($context.args.input),
+    "condition": {
+        "expression": "attribute_not_exists(#postId)",
+        "expressionNames": {
+            "#postId": "postId"
+        }
+    }
+}
+
+

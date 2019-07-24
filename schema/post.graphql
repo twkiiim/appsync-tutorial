@@ -1,0 +1,28 @@
+type Post {
+    postId: ID!
+    user: User!
+    title: String!
+    content: String!
+    likes: [Like!]!
+    createdAt: AWSDateTime!
+}
+
+input CreatePostInput {
+    userId: ID!
+    title: String!
+    content: String!
+}
+
+type Query {
+    listPost: [Post!]!
+    listPostByUser(userId: ID!): [Post!]!
+    getPost(postId: ID!): Post
+}
+
+type Mutation {
+    createPost(input: CreatePostInput!): Post
+}
+
+type Subscription {
+    onNewPostCreated: Post @aws_subscribe(mutations: ["createPost"])
+}

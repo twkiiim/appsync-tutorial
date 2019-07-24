@@ -1,0 +1,11 @@
+{
+    "version" : "2017-02-28",
+    "operation" : "Query",
+    "index" : "postId-index",
+    "query" : {
+        "expression": "postId = :postId",
+        "expressionValues" : {
+            ":postId" : $util.dynamodb.toDynamoDBJson($ctx.source.postId)
+        }
+    }
+}

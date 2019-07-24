@@ -1,0 +1,20 @@
+type Like {
+    likeId: ID!
+    userId: ID!
+    postId: ID!
+    createdAt: AWSDateTime!
+}
+
+type Query {
+    listLike(postId: ID!): [Like!]!
+}
+
+type Mutation {
+    likePost(userId: ID!, postId: ID!): Like
+    cancelLikePost(likeId: ID!): Like
+}
+
+type Subscription {
+    onPostLiked(postId: ID!): Like @aws_subscribe(mutations: ["likePost"])
+    onPostLikeCanceled(postId: ID!): Like @aws_subscribe(mutations: ["cancelLikePost"])
+}

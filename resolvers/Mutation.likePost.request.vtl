@@ -1,0 +1,12 @@
+{
+    "version": "2017-02-28",
+    "operation": "PutItem",
+    "key": {
+        "likeId":   $util.dynamodb.toDynamoDBJson($util.defaultIfNullOrBlank($ctx.args.input.likeId, $util.autoId()))
+    },
+    "attributeValues": {
+        "userId" : { "S" : "$context.args.userId" },
+        "postId" : { "S" : "$context.args.postId" },
+        "createdAt" : {"S" : "$util.defaultIfNull($ctx.args.input.createdAt, $util.time.nowISO8601())" }
+    }
+}

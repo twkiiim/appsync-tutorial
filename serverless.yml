@@ -1,0 +1,240 @@
+service: classmethod-appsync-tutorial
+
+frameworkVersion: ">=1.48.0 <2.0.0"
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: dev
+  region: ap-northeast-2
+
+plugins:
+  - serverless-appsync-plugin
+
+custom:
+  appSync:
+    name: AppSyncTutorialByClassmethod
+    authenticationType: AMAZON_COGNITO_USER_POOLS
+    userPoolConfig:
+      awsRegion: ap-northeast-2
+      defaultAction: ALLOW
+      userPoolId: { Ref: AppSyncTutorialUserPool }
+    region: ap-northeast-2
+    mappingTemplatesLocation: resolvers
+    mappingTemplates:
+      
+      # User
+      - 
+        type: User
+        field: posts
+        dataSource: Post
+      - 
+        type: Query
+        field: listUser
+        dataSource: User
+      - 
+        type: Query
+        field: getUser
+        dataSource: User
+      - 
+        type: Mutation
+        field: createUser
+        dataSource: User
+
+      # Post
+      - 
+        type: Post
+        field: user
+        dataSource: User
+      - 
+        type: Post
+        field: likes
+        dataSource: Like
+      -
+        type: Query
+        field: listPost
+        dataSource: Post
+      - 
+        type: Query
+        field: listPostByUser
+        dataSource: Post
+      - 
+        type: Query
+        field: getPost
+        dataSource: Post
+      - 
+        type: Mutation
+        field: createPost
+        dataSource: Post
+
+      # Like
+      - 
+        type: Query
+        field: listLike
+        dataSource: Like
+      - 
+        type: Mutation
+        field: likePost
+        dataSource: Like
+      - 
+        type: Mutation
+        field: cancelLikePost
+        dataSource: Like
+
+        
+    schema:
+      - schema/user.graphql
+      - schema/post.graphql
+      - schema/like.graphql
+    
+    #serviceRole: # if not provided, a default role is generated
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: User
+        description: User Table
+        config:
+          tableName: User
+          iamRoleStatements:
+            - Effect: Allow
+              Action:
+                - dynamodb:*
+              Resource:
+                - arn:aws:dynamodb:${self:provider.region}:*:table/User
+                - arn:aws:dynamodb:${self:provider.region}:*:table/User/*
+
+      - type: AMAZON_DYNAMODB
+        name: Post
+        description: Post Table
+        config:
+          tableName: Post
+          iamRoleStatements:
+            - Effect: Allow
+              Action:
+                - dynamodb:*
+              Resource:
+                - arn:aws:dynamodb:${self:provider.region}:*:table/Post
+                - arn:aws:dynamodb:${self:provider.region}:*:table/Post/*
+      
+      - type: AMAZON_DYNAMODB
+        name: Like
+        description: Like Table
+        config:
+          tableName: Like
+          iamRoleStatements:
+            - Effect: Allow
+              Action:
+                - dynamodb:*
+              Resource:
+                - arn:aws:dynamodb:${self:provider.region}:*:table/Like
+                - arn:aws:dynamodb:${self:provider.region}:*:table/Like/*
+
+
+resources:
+  Resources:
+    AppSyncTutorialUserPool:
+      Type: AWS::Cognito::UserPool
+      DeletionPolicy: Retain
+      Properties:
+        UserPoolName: AppSyncTutorialUserPool
+        AutoVerifiedAttributes:
+          - email
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+        UsernameAttributes:
+          - email
+
+    AppSyncTutorialUserPoolWebClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+          ClientName: Web
+          GenerateSecret: false
+          RefreshTokenValidity: 30
+          UserPoolId: { Ref: AppSyncTutorialUserPool }
+
+
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: User
+        KeySchema:
+          -
+            AttributeName: userId
+            KeyType: HASH
+        AttributeDefinitions:
+          -
+            AttributeName: userId
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+
+    PostTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Post
+        KeySchema:
+          -
+            AttributeName: postId
+            KeyType: HASH
+        AttributeDefinitions:
+          -
+            AttributeName: postId
+            AttributeType: S
+          -
+            AttributeName: userId
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+
+        # GSI - userId
+        GlobalSecondaryIndexes:
+          -
+            IndexName: userId-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: postId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+    LikeTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Like
+        KeySchema:
+          - AttributeName: likeId
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: likeId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: postId
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+
+        GlobalSecondaryIndexes:
+
+          # GSI - userId
+          - IndexName: userId-index
+            KeySchema:
+              -
+                AttributeName: userId
+                KeyType: HASH
+              -
+                AttributeName: likeId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          
+          # GSI - postId
+          - IndexName: postId-index
+            KeySchema:
+              -
+                AttributeName: postId
+                KeyType: HASH
+              -
+                AttributeName: likeId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        
